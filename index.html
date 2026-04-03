@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LockIn — Stop Scrolling. Start Studying.</title>
+<meta name="description" content="LockIn is the ultimate focus app for students. Block distracting apps, earn XP, and dominate your leaderboard. Download free for Android."/>
+<meta name="keywords" content="focus app, study app, block apps, pomodoro, android, student productivity, lockin"/>
+<meta property="og:title" content="LockIn — Stop Scrolling. Start Studying."/>
+<meta property="og:description" content="The focus app built for students who are serious about locking in."/>
+<meta property="og:type" content="website"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --lime: #C8FF00;
+    --lime-dim: #a8d600;
+    --black: #0a0a0a;
+    --dark: #111111;
+    --card: #141414;
+    --border: #1e1e1e;
+    --text: #eeeeee;
+    --muted: #555555;
+    --red: #ff4444;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    width: 12px; height: 12px;
+    background: var(--lime);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    transition: transform 0.15s ease, width 0.2s ease, height 0.2s ease;
+    transform: translate(-50%, -50%);
+  }
+  .cursor-ring {
+    width: 36px; height: 36px;
+    border: 1.5px solid var(--lime);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 9998;
+    transition: transform 0.35s cubic-bezier(.25,.46,.45,.94), opacity 0.2s;
+    transform: translate(-50%, -50%);
+    opacity: 0.4;
+  }
+  body:hover .cursor { opacity: 1; }
+
+  /* Noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.35;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 48px;
+    background: rgba(10,10,10,0.8);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 3px;
+    color: var(--lime);
+  }
+  .nav-links { display: flex; gap: 36px; list-style: none; }
+  .nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--lime); }
+  .nav-cta {
+    background: var(--lime);
+    color: var(--black);
+    padding: 10px 24px;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    border: none;
+    cursor: none;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .nav-cta:hover { background: #fff; transform: translateY(-1px); }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-bg-glow {
+    position: absolute;
+    width: 700px; height: 700px;
+    background: radial-gradient(circle, rgba(200,255,0,0.07) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    animation: pulse-glow 4s ease-in-out infinite;
+  }
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 0.6; transform: translate(-50%,-50%) scale(1); }
+    50% { opacity: 1; transform: translate(-50%,-50%) scale(1.08); }
+  }
+  .hero-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--lime);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    opacity: 0;
+    animation: fade-up 0.8s ease 0.2s forwards;
+  }
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(80px, 14vw, 180px);
+    line-height: 0.9;
+    letter-spacing: 4px;
+    color: var(--text);
+    margin-bottom: 8px;
+    opacity: 0;
+    animation: fade-up 0.8s ease 0.4s forwards;
+  }
+  .hero-title span { color: var(--lime); }
+  .hero-subtitle {
+    font-size: clamp(16px, 2.5vw, 22px);
+    color: var(--muted);
+    max-width: 520px;
+    line-height: 1.6;
+    margin: 28px auto 48px;
+    font-weight: 300;
+    opacity: 0;
+    animation: fade-up 0.8s ease 0.6s forwards;
+  }
+  .hero-actions {
+    display: flex; gap: 16px; align-items: center; justify-content: center; flex-wrap: wrap;
+    opacity: 0;
+    animation: fade-up 0.8s ease 0.8s forwards;
+  }
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--lime);
+    color: var(--black);
+    padding: 18px 36px;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    border: none; cursor: none;
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+    box-shadow: 0 0 40px rgba(200,255,0,0.25);
+  }
+  .btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 60px rgba(200,255,0,0.4);
+  }
+  .btn-secondary {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--muted);
+    font-size: 14px;
+    text-decoration: none;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 2px;
+    transition: color 0.2s, border-color 0.2s;
+    cursor: none;
+  }
+  .btn-secondary:hover { color: var(--text); border-color: var(--muted); }
+
+  .hero-stats {
+    display: flex; gap: 48px; justify-content: center; flex-wrap: wrap;
+    margin-top: 72px;
+    opacity: 0;
+    animation: fade-up 0.8s ease 1s forwards;
+  }
+  .hero-stat-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    color: var(--lime);
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+  .hero-stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* TICKER */
+  .ticker-wrap {
+    overflow: hidden;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--dark);
+    padding: 14px 0;
+  }
+  .ticker {
+    display: flex;
+    animation: ticker 22s linear infinite;
+    white-space: nowrap;
+  }
+  .ticker-item {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    padding: 0 32px;
+  }
+  .ticker-item span { color: var(--lime); }
+  @keyframes ticker {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* FEATURES */
+  section { position: relative; z-index: 2; }
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--lime);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 7vw, 80px);
+    letter-spacing: 2px;
+    line-height: 1;
+    margin-bottom: 16px;
+  }
+
+  .features {
+    padding: 120px 48px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .features-header { margin-bottom: 72px; }
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2px;
+    background: var(--border);
+  }
+  .feature-card {
+    background: var(--card);
+    padding: 40px 36px;
+    transition: background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--lime);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+  }
+  .feature-card:hover::before { transform: scaleX(1); }
+  .feature-card:hover { background: #181818; }
+  .feature-icon {
+    font-size: 32px;
+    margin-bottom: 20px;
+    display: block;
+  }
+  .feature-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 1px;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .feature-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+  .feature-tag {
+    display: inline-block;
+    margin-top: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--lime);
+    letter-spacing: 0.15em;
+    border: 1px solid rgba(200,255,0,0.2);
+    padding: 4px 10px;
+  }
+
+  /* HOW IT WORKS */
+  .how {
+    padding: 120px 48px;
+    background: var(--dark);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .how-inner { max-width: 1000px; margin: 0 auto; }
+  .how-header { margin-bottom: 72px; }
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0;
+    counter-reset: steps;
+  }
+  .step {
+    padding: 40px 32px;
+    border-right: 1px solid var(--border);
+    position: relative;
+    counter-increment: steps;
+  }
+  .step:last-child { border-right: none; }
+  .step::before {
+    content: "0" counter(steps);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 64px;
+    color: var(--border);
+    display: block;
+    line-height: 1;
+    margin-bottom: 16px;
+    transition: color 0.3s;
+  }
+  .step:hover::before { color: rgba(200,255,0,0.15); }
+  .step-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 1px;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+  .step-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  /* DOWNLOAD */
+  .download {
+    padding: 140px 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .download-glow {
+    position: absolute;
+    width: 600px; height: 400px;
+    background: radial-gradient(ellipse, rgba(200,255,0,0.08) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .download-inner { position: relative; z-index: 2; max-width: 640px; margin: 0 auto; }
+  .download-badge {
+    display: inline-block;
+    background: rgba(200,255,0,0.08);
+    border: 1px solid rgba(200,255,0,0.2);
+    color: var(--lime);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    padding: 8px 20px;
+    margin-bottom: 32px;
+  }
+  .download-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(56px, 9vw, 100px);
+    letter-spacing: 3px;
+    line-height: 0.95;
+    margin-bottom: 24px;
+  }
+  .download-title span { color: var(--lime); }
+  .download-sub {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 48px;
+    font-weight: 300;
+  }
+  .download-btn {
+    display: inline-flex; align-items: center; gap: 14px;
+    background: var(--lime);
+    color: var(--black);
+    padding: 22px 48px;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.06em;
+    text-decoration: none;
+    text-transform: uppercase;
+    border: none; cursor: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 0 60px rgba(200,255,0,0.3), 0 0 120px rgba(200,255,0,0.1);
+    position: relative;
+    overflow: hidden;
+  }
+  .download-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.15);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  .download-btn:hover::after { transform: translateX(0); }
+  .download-btn:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 0 80px rgba(200,255,0,0.5), 0 20px 60px rgba(0,0,0,0.4);
+  }
+  .download-btn svg { width: 22px; height: 22px; fill: var(--black); }
+  .download-note {
+    margin-top: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #333;
+    letter-spacing: 0.1em;
+  }
+  .download-note a { color: var(--muted); }
+
+  /* INSTALL STEPS */
+  .install-steps {
+    display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+    margin-top: 48px;
+  }
+  .install-step {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 12px 20px;
+    font-size: 13px;
+    color: var(--muted);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .install-step-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--lime);
+    background: rgba(200,255,0,0.08);
+    padding: 2px 7px;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 48px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    gap: 16px;
+    background: var(--dark);
+  }
+  .footer-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: var(--lime);
+  }
+  .footer-links { display: flex; gap: 24px; list-style: none; }
+  .footer-links a {
+    color: #333;
+    font-size: 12px;
+    text-decoration: none;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--muted); }
+  .footer-copy {
+    font-size: 11px;
+    color: #2a2a2a;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* SCROLL REVEAL */
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* MOBILE */
+  @media (max-width: 768px) {
+    nav { padding: 16px 24px; }
+    .nav-links { display: none; }
+    .features { padding: 80px 24px; }
+    .how { padding: 80px 24px; }
+    .steps { grid-template-columns: 1fr; }
+    .step { border-right: none; border-bottom: 1px solid var(--border); }
+    .step:last-child { border-bottom: none; }
+    .download { padding: 100px 24px; }
+    footer { padding: 32px 24px; flex-direction: column; text-align: center; }
+    body { cursor: auto; }
+    .cursor, .cursor-ring { display: none; }
+  }
+
+  /* FLICKER ANIMATION on hero title */
+  @keyframes flicker {
+    0%, 95%, 100% { opacity: 1; }
+    96% { opacity: 0.85; }
+    97% { opacity: 1; }
+    98% { opacity: 0.9; }
+    99% { opacity: 1; }
+  }
+  .hero-title { animation: fade-up 0.8s ease 0.4s forwards, flicker 8s ease 3s infinite; }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">LockIn</div>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#download">Download</a></li>
+  </ul>
+  <a href="#download" class="nav-cta">Get the App ↓</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg-glow"></div>
+  <p class="hero-eyebrow">// For students who mean business</p>
+  <h1 class="hero-title">LOCK<span>IN</span></h1>
+  <p class="hero-subtitle">Block the noise. Earn XP. Outlast everyone on the leaderboard. The focus app that hits different.</p>
+  <div class="hero-actions">
+    <a href="#download" class="btn-primary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M5 20h14v-2H5m14-9h-4V3H9v6H5l7 7 7-7z"/></svg>
+      Download Free
+    </a>
+    <a href="#features" class="btn-secondary">See what it does →</a>
+  </div>
+  <div class="hero-stats">
+    <div>
+      <div class="hero-stat-num">100%</div>
+      <div class="hero-stat-label">Free to download</div>
+    </div>
+    <div>
+      <div class="hero-stat-num">6H</div>
+      <div class="hero-stat-label">Daily focus goal</div>
+    </div>
+    <div>
+      <div class="hero-stat-num">0</div>
+      <div class="hero-stat-label">Distractions allowed</div>
+    </div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span class="ticker-item">BLOCK INSTAGRAM <span>✦</span></span>
+    <span class="ticker-item">EARN XP <span>✦</span></span>
+    <span class="ticker-item">CLIMB THE LEADERBOARD <span>✦</span></span>
+    <span class="ticker-item">POMODORO TIMER <span>✦</span></span>
+    <span class="ticker-item">DEEP WORK MODE <span>✦</span></span>
+    <span class="ticker-item">BLOCK YOUTUBE <span>✦</span></span>
+    <span class="ticker-item">DAILY STREAKS <span>✦</span></span>
+    <span class="ticker-item">LOCK IN <span>✦</span></span>
+    <span class="ticker-item">BLOCK INSTAGRAM <span>✦</span></span>
+    <span class="ticker-item">EARN XP <span>✦</span></span>
+    <span class="ticker-item">CLIMB THE LEADERBOARD <span>✦</span></span>
+    <span class="ticker-item">POMODORO TIMER <span>✦</span></span>
+    <span class="ticker-item">DEEP WORK MODE <span>✦</span></span>
+    <span class="ticker-item">BLOCK YOUTUBE <span>✦</span></span>
+    <span class="ticker-item">DAILY STREAKS <span>✦</span></span>
+    <span class="ticker-item">LOCK IN <span>✦</span></span>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="features-header reveal">
+    <p class="section-label">// What it does</p>
+    <h2 class="section-title">BUILT TO<br/>KEEP YOU<br/>HONEST</h2>
+  </div>
+  <div class="features-grid reveal">
+    <div class="feature-card">
+      <span class="feature-icon">🔒</span>
+      <div class="feature-name">App Blocker</div>
+      <p class="feature-desc">Block Instagram, YouTube, BGMI — whatever kills your focus. During a session, those apps are dead to you.</p>
+      <span class="feature-tag">ACCESSIBILITY SERVICE</span>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">⏱</span>
+      <div class="feature-name">Focus Timer</div>
+      <p class="feature-desc">Pomodoro, Deep Work, or Custom. The timer runs even when you switch apps. No sneaking out.</p>
+      <span class="feature-tag">BACKGROUND SERVICE</span>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">⚡</span>
+      <div class="feature-name">XP System</div>
+      <p class="feature-desc">Earn XP for every minute you lock in. Watch your points stack up. Feel the grind pay off.</p>
+      <span class="feature-tag">GAMIFIED</span>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🏆</span>
+      <div class="feature-name">Leaderboard</div>
+      <p class="feature-desc">See where you rank against other students. Nothing motivates like not wanting to be last.</p>
+      <span class="feature-tag">REAL-TIME</span>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🔥</span>
+      <div class="feature-name">Daily Streaks</div>
+      <p class="feature-desc">Keep your streak alive. Miss a day and watch it burn. Consistency is the whole game.</p>
+      <span class="feature-tag">DAILY RESET</span>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">📊</span>
+      <div class="feature-name">Usage Reports</div>
+      <p class="feature-desc">See exactly where your time goes. The data doesn't lie — but it might hurt.</p>
+      <span class="feature-tag">WEEKLY STATS</span>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div class="how-inner">
+    <div class="how-header reveal">
+      <p class="section-label">// How it works</p>
+      <h2 class="section-title">FOUR STEPS<br/>TO LOCKED IN</h2>
+    </div>
+    <div class="steps reveal">
+      <div class="step">
+        <div class="step-title">Download & Install</div>
+        <p class="step-desc">Grab the APK, install it, grant the permissions. Takes two minutes.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Pick Your Apps</div>
+        <p class="step-desc">Choose which apps to block during sessions. Instagram, YouTube, games — all of it.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Start a Session</div>
+        <p class="step-desc">Pick Pomodoro, Deep Work, or custom. Hit start. The blocks go up instantly.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Earn & Climb</div>
+        <p class="step-desc">Stack XP, build your streak, rise on the leaderboard. Repeat daily.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DOWNLOAD -->
+<section class="download" id="download">
+  <div class="download-glow"></div>
+  <div class="download-inner">
+    <div class="reveal">
+      <span class="download-badge">FREE — ANDROID APK</span>
+      <h2 class="download-title">STOP<br/>SCROLL<span>ING</span></h2>
+      <p class="download-sub">No Play Store. No nonsense. Just download the APK, install it, and start actually studying.</p>
+
+      <a href="lockin.apk" class="download-btn" id="downloadBtn">
+        <svg viewBox="0 0 24 24"><path d="M5 20h14v-2H5m14-9h-4V3H9v6H5l7 7 7-7z"/></svg>
+        Download LockIn APK
+      </a>
+
+      <p class="download-note">
+        Android 8.0+ required &nbsp;·&nbsp; ~8MB &nbsp;·&nbsp;
+        <a href="https://github.com/suzucodes/lockin" target="_blank">View source on GitHub</a>
+      </p>
+
+      <div class="install-steps">
+        <div class="install-step">
+          <span class="install-step-num">01</span>
+          Download the APK
+        </div>
+        <div class="install-step">
+          <span class="install-step-num">02</span>
+          Allow unknown sources
+        </div>
+        <div class="install-step">
+          <span class="install-step-num">03</span>
+          Install &amp; open LockIn
+        </div>
+        <div class="install-step">
+          <span class="install-step-num">04</span>
+          Grant accessibility access
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">LockIn</div>
+  <ul class="footer-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#download">Download</a></li>
+    <li><a href="https://github.com/suzucodes/lockin" target="_blank">GitHub</a></li>
+  </ul>
+  <p class="footer-copy">© 2025 LockIn · Built by suzucodes</p>
+</footer>
+
+<script>
+  // Custom cursor
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cursor.style.left = mx + 'px';
+    cursor.style.top = my + 'px';
+  });
+  function animateRing() {
+    rx += (mx - rx) * 0.12;
+    ry += (my - ry) * 0.12;
+    ring.style.left = rx + 'px';
+    ring.style.top = ry + 'px';
+    requestAnimationFrame(animateRing);
+  }
+  animateRing();
+
+  document.querySelectorAll('a, button, .feature-card, .step').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      cursor.style.width = '20px';
+      cursor.style.height = '20px';
+      ring.style.opacity = '0.8';
+      ring.style.transform = 'translate(-50%,-50%) scale(1.4)';
+    });
+    el.addEventListener('mouseleave', () => {
+      cursor.style.width = '12px';
+      cursor.style.height = '12px';
+      ring.style.opacity = '0.4';
+      ring.style.transform = 'translate(-50%,-50%) scale(1)';
+    });
+  });
+
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.12 });
+  reveals.forEach(r => observer.observe(r));
+
+  // Download click counter
+  const btn = document.getElementById('downloadBtn');
+  let clicks = 0;
+  btn.addEventListener('click', () => {
+    clicks++;
+    if (clicks === 1) {
+      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" style="width:22px;height:22px"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Downloading...`;
+      setTimeout(() => {
+        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" style="width:22px;height:22px"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Download LockIn APK`;
+        clicks = 0;
+      }, 3000);
+    }
+  });
+</script>
+</body>
+</html>
